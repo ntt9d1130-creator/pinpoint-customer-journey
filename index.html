@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinpoint Customer Journey Map</title>
+<style>
+  :root {
+    --phase1: #6366f1; --phase1-bg: #eef2ff; --phase1-border: #c7d2fe;
+    --phase2: #f59e0b; --phase2-bg: #fffbeb; --phase2-border: #fde68a;
+    --phase3: #10b981; --phase3-bg: #ecfdf5; --phase3-border: #a7f3d0;
+    --phase4: #3b82f6; --phase4-bg: #eff6ff; --phase4-border: #bfdbfe;
+    --phase5: #ec4899; --phase5-bg: #fdf2f8; --phase5-border: #fbcfe8;
+    --bd: #6366f1; --account: #10b981; --planner: #f59e0b; --media: #3b82f6;
+    --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+    --gray-300: #d1d5db; --gray-500: #6b7280; --gray-700: #374151; --gray-900: #111827;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-900); }
+
+  .header { background: white; border-bottom: 1px solid var(--gray-200); padding: 20px 32px; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+  .header p { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+
+  .toolbar { background: white; border-bottom: 1px solid var(--gray-200); padding: 12px 32px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; position: sticky; top: 68px; z-index: 99; }
+  .toolbar label { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .5px; }
+  .filter-group { display: flex; gap: 6px; align-items: center; }
+  .filter-btn { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--gray-200); background: white; font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; }
+  .filter-btn:hover { border-color: var(--gray-300); background: var(--gray-100); }
+  .filter-btn.active { color: white; border-color: transparent; }
+  .filter-btn.active[data-pic="BD"] { background: var(--bd); }
+  .filter-btn.active[data-pic="Account"] { background: var(--account); }
+  .filter-btn.active[data-pic="Planner"] { background: var(--planner); }
+  .filter-btn.active[data-pic="Media"] { background: var(--media); }
+  .filter-btn.active[data-pic="all"] { background: var(--gray-700); }
+
+  .view-toggle { margin-left: auto; display: flex; gap: 4px; background: var(--gray-100); border-radius: 8px; padding: 3px; }
+  .view-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--gray-500); }
+  .view-btn.active { background: white; color: var(--gray-900); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  .container { padding: 32px; max-width: 1600px; margin: 0 auto; }
+
+  /* Phase Sections */
+  .phase-section { margin-bottom: 32px; }
+  .phase-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; user-select: none; }
+  .phase-indicator { width: 6px; height: 32px; border-radius: 3px; }
+  .phase-title { font-size: 16px; font-weight: 700; }
+  .phase-subtitle { font-size: 12px; color: var(--gray-500); }
+  .phase-toggle { margin-left: auto; font-size: 18px; color: var(--gray-300); transition: transform .2s; }
+  .phase-toggle.collapsed { transform: rotate(-90deg); }
+  .phase-metrics { display: flex; gap: 8px; margin-left: 12px; }
+  .metric-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+
+  /* Steps Grid */
+  .steps-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; transition: all .3s; }
+  .steps-grid.collapsed { display: none; }
+  .steps-grid::-webkit-scrollbar { height: 6px; }
+  .steps-grid::-webkit-scrollbar-track { background: var(--gray-100); border-radius: 3px; }
+  .steps-grid::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+  /* Step Card */
+  .step-card { min-width: 260px; max-width: 300px; background: white; border-radius: 12px; border: 1.5px solid var(--gray-200); overflow: hidden; flex-shrink: 0; transition: all .2s; cursor: pointer; }
+  .step-card:hover { border-color: var(--gray-300); box-shadow: 0 4px 12px rgba(0,0,0,.06); transform: translateY(-2px); }
+  .step-card.dimmed { opacity: .3; transform: scale(.97); }
+  .step-card.highlighted { border-color: currentColor; box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+
+  .card-top { padding: 14px 16px 10px; border-bottom: 1px solid var(--gray-100); }
+  .step-number { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+  .card-title { font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; }
+  .card-desc { font-size: 11px; color: var(--gray-500); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .card-body { padding: 12px 16px; }
+  .task-list { list-style: none; }
+  .task-item { font-size: 11px; color: var(--gray-700); padding: 4px 0; border-bottom: 1px solid var(--gray-100); line-height: 1.4; display: flex; align-items: flex-start; gap: 6px; }
+  .task-item:last-child { border-bottom: none; }
+  .task-bullet { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+
+  .card-footer { padding: 10px 16px; background: var(--gray-50); border-top: 1px solid var(--gray-100); display: flex; flex-wrap: wrap; gap: 4px; }
+  .pic-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; color: white; }
+  .pic-BD { background: var(--bd); }
+  .pic-Account { background: var(--account); }
+  .pic-Planner { background: var(--planner); }
+  .pic-Media { background: var(--media); }
+
+  .raci-row { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .raci-chip { font-size: 9px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--gray-200); color: var(--gray-500); }
+
+  /* Arrow connector */
+  .arrow-connector { display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--gray-300); font-size: 20px; }
+
+  /* Metric markers */
+  .metric-marker { position: relative; }
+  .metric-marker::after { content: attr(data-metric); position: absolute; top: -8px; right: -8px; font-size: 8px; background: #ef4444; color: white; padding: 1px 5px; border-radius: 8px; font-weight: 700; white-space: nowrap; }
+
+  /* Detail Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 0; }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: flex-start; position: sticky; top: 0; background: white; border-radius: 16px 16px 0 0; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--gray-500); padding: 4px; }
+  .modal-body { padding: 20px 24px; }
+  .modal-section { margin-bottom: 20px; }
+  .modal-section h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--gray-500); margin-bottom: 8px; }
+  .modal-section p, .modal-section li { font-size: 13px; line-height: 1.6; color: var(--gray-700); }
+  .modal-section ul { padding-left: 16px; }
+  .raci-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .raci-table th, .raci-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--gray-100); }
+  .raci-table th { font-weight: 600; color: var(--gray-500); font-size: 11px; text-transform: uppercase; }
+
+  /* Editable */
+  .editable { position: relative; }
+  .editable:hover::after { content: '✏️'; position: absolute; top: -2px; right: -16px; font-size: 10px; }
+  [contenteditable="true"] { outline: 2px solid var(--phase1); border-radius: 4px; padding: 2px 4px; background: #eef2ff; }
+
+  /* Timeline view */
+  .timeline-view { display: none; }
+  .timeline-view.active { display: block; }
+  .timeline-row { display: flex; align-items: stretch; min-height: 80px; }
+  .timeline-label { width: 180px; flex-shrink: 0; padding: 12px 16px; font-size: 12px; font-weight: 600; display: flex; align-items: center; border-right: 2px solid var(--gray-200); }
+  .timeline-cells { display: flex; flex: 1; }
+  .timeline-cell { flex: 1; min-width: 100px; padding: 8px; border-right: 1px solid var(--gray-100); border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: center; }
+  .timeline-cell.active-cell { background: var(--phase1-bg); }
+  .timeline-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+  /* Print */
+  @media print {
+    .toolbar, .header { position: static; }
+    .step-card { break-inside: avoid; }
+  }
+
+  /* Edit Panel */
+  .edit-panel { position: fixed; right: -400px; top: 0; width: 380px; height: 100vh; background: white; box-shadow: -4px 0 20px rgba(0,0,0,.1); z-index: 150; transition: right .3s; overflow-y: auto; }
+  .edit-panel.open { right: 0; }
+  .edit-panel-header { padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
+  .edit-panel-header h2 { font-size: 16px; font-weight: 700; }
+  .edit-panel-body { padding: 20px; }
+  .edit-field { margin-bottom: 16px; }
+  .edit-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--gray-500); margin-bottom: 6px; }
+  .edit-field input, .edit-field textarea, .edit-field select { width: 100%; padding: 8px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 13px; font-family: inherit; }
+  .edit-field textarea { min-height: 80px; resize: vertical; }
+  .save-btn { width: 100%; padding: 10px; background: var(--phase1); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+  .save-btn:hover { opacity: .9; }
+  .add-task-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--phase1); cursor: pointer; padding: 4px 0; font-weight: 500; border: none; background: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🗺️ Pinpoint — Customer Journey Map</h1>
+  <p>Quy trình triển khai E2E cho khách hàng SME · Pinpoint by PMAX · Cập nhật: Tháng 4/2026</p>
+</div>
+
+<div class="toolbar">
+  <label>Lọc PIC:</label>
+  <div class="filter-group">
+    <button class="filter-btn active" data-pic="all" onclick="filterPIC('all')">Tất cả</button>
+    <button class="filter-btn" data-pic="BD" onclick="filterPIC('BD')">BD Team</button>
+    <button class="filter-btn" data-pic="Account" onclick="filterPIC('Account')">Account</button>
+    <button class="filter-btn" data-pic="Planner" onclick="filterPIC('Planner')">Planner</button>
+    <button class="filter-btn" data-pic="Media" onclick="filterPIC('Media')">Media</button>
+  </div>
+  <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 8px;"></div>
+  <button class="filter-btn" onclick="exportJSON()" title="Export cấu hình">📥 Export JSON</button>
+  <button class="filter-btn" onclick="importJSON()" title="Import cấu hình">📤 Import JSON</button>
+  <button class="filter-btn" onclick="window.print()" title="In">🖨️ Print</button>
+  <div class="view-toggle">
+    <button class="view-btn active" onclick="switchView('card')">Card</button>
+    <button class="view-btn" onclick="switchView('list')">List</button>
+  </div>
+</div>
+
+<div class="container" id="journey-container"></div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div id="modal-step-num" style="font-size:11px;font-weight:700;margin-bottom:4px;"></div>
+        <h2 id="modal-title" style="font-size:18px;"></h2>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Edit Panel -->
+<div class="edit-panel" id="editPanel">
+  <div class="edit-panel-header">
+    <h2>✏️ Chỉnh sửa Step</h2>
+    <button class="modal-close" onclick="closeEditPanel()">✕</button>
+  </div>
+  <div class="edit-panel-body" id="editPanelBody"></div>
+</div>
+
+<input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
+
+<script>
+// === DATA MODEL ===
+let journeyData = {
+  phases: [
+    {
+      id: "presale",
+      name: "GIAI ĐOẠN 1: CHUẨN BỊ & XÂY DỰNG DỮ LIỆU",
+      subtitle: "Xây dựng database, phân bổ dữ liệu, nghiên cứu khách hàng",
+      color: "var(--phase1)", bgColor: "var(--phase1-bg)", borderColor: "var(--phase1-border)",
+      steps: [
+        {
+          id: "s1", num: "Bước 1", title: "Xây dựng dữ liệu thông tin KH",
+          desc: "Tìm kiếm, bổ sung và chuẩn hoá danh sách dữ liệu khách hàng tiềm năng phục vụ nghiên cứu và tiếp cận",
+          tasks: [
+            "Nhận danh sách dữ liệu được giao",
+            "Tìm kiếm, tổng hợp thông tin theo mã số thuế",
+            "Điền thông tin: ngành hàng, sản phẩm, đối thủ, xuất xứ",
+            "Điền thông tin contact (3 trường cơ bản + title)",
+            "Nhập liệu vào Hubspot system"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Intern", A: "BD Leader", C: "BD Manager", I: "BD Director" },
+          metric: null,
+          sla: "100 dữ liệu / ngày",
+          system: "Google Sheets + Hubspot",
+          training: "BD Scrapping Training v112025"
+        },
+        {
+          id: "s1b", num: "Bước 1b", title: "Phân bổ dữ liệu cho BDE",
+          desc: "Phân chia dữ liệu, database cho các BDE để tiếp cận, theo dõi và chuyển đổi",
+          tasks: [
+            "Review hiệu quả và năng lực BDE",
+            "Phân bổ dữ liệu mới theo forecast và năng lực",
+            "Phân bổ theo ngành, sản phẩm, tiered tiềm năng",
+            "Kiểm tra và thông báo"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Manager", A: "BD Director", C: "", I: "MD" },
+          metric: null,
+          sla: "Monthly",
+          system: "Master Data Client Management",
+          training: "BD allocation data v112025"
+        },
+        {
+          id: "s1c", num: "Bước 1c", title: "Nghiên cứu & thẩm định KH",
+          desc: "BDE kiểm tra cơ sở dữ liệu, lên kế hoạch, thống kê thông tin KH chuẩn bị tiếp cận",
+          tasks: [
+            "Filter dữ liệu được phân bổ",
+            "Research thông tin: wallet, chiến dịch, giải pháp",
+            "Đánh giá: sản phẩm, đối thủ, painpoint",
+            "Xác định người ra quyết định & quy trình",
+            "Sự kiện gần đây của KH"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Executive (Hunter)", A: "BD Leader", C: "BD Director / Product Manager", I: "MD" },
+          metric: null,
+          sla: "Daily (1h30-3h00)",
+          system: "Master Client Data + Hubspot",
+          training: "Target clients & Potential clients v012025"
+        }
+      ]
+    },
+    {
+      id: "outreach",
+      name: "GIAI ĐOẠN 2: TIẾP CẬN & NUÔI DƯỠNG",
+      subtitle: "Cold call, follow-up, chăm sóc và thiết lập quan hệ khách hàng",
+      color: "var(--phase2)", bgColor: "var(--phase2-bg)", borderColor: "var(--phase2-border)",
+      steps: [
+        {
+          id: "s2", num: "Bước 2", title: "Tiếp cận khách hàng",
+          desc: "Gọi điện kết nối, theo dõi và tạo lịch hẹn với khách hàng",
+          tasks: [
+            "Lên kế hoạch gọi điện theo chỉ tiêu ngày",
+            "Cold call theo giờ vàng (10-11h30, 3h-5h30)",
+            "Tư vấn giải pháp và đặt lịch hẹn",
+            "Bám theo guideline & đánh giá hiệu quả cuộc gọi",
+            "Nhập liệu Hubspot cuối ngày (5h30)"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Executive (Hunter)", A: "BD Leader", C: "BD Manager", I: "" },
+          metric: null,
+          sla: "Daily (giờ vàng)",
+          system: "Personal Dashboard + Hubspot",
+          training: "Call script training v102025"
+        },
+        {
+          id: "s3", num: "Bước 3", title: "Nuôi dưỡng khách hàng",
+          desc: "Follow-up warm lead, tương tác để tạo mối quan hệ lâu dài",
+          tasks: [
+            "Follow-up warm lead & inactive lead",
+            "Gửi thông tin hữu ích tạo giá trị",
+            "Tạo tương tác: quà tặng, ăn uống, gặp mặt",
+            "Thu thập thêm nhu cầu của KH"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Executive (Hunter)", A: "BD Lead / BD Manager", C: "BD Lead / BD Manager", I: "" },
+          metric: "Qualified Lead",
+          sla: "Ongoing",
+          system: "Master Client Data + Hubspot",
+          training: ""
+        },
+        {
+          id: "s4", num: "Bước 4", title: "Đặt lịch hẹn & lấy Brief",
+          desc: "Thiết lập buổi gặp mặt, thu thập brief chi tiết từ khách hàng",
+          tasks: [
+            "Đặt lịch và gặp trực tiếp khách hàng",
+            "Xác định nhu cầu chi tiết",
+            "Thu thập brief đầy đủ",
+            "Đánh giá mức độ tiềm năng"
+          ],
+          pics: ["BD"],
+          raci: { R: "BD Executive", A: "BD Leader", C: "", I: "" },
+          metric: "Brief",
+          sla: "",
+          system: "",
+          training: ""
+        }
+      ]
+    },
+    {
+      id: "qualify",
+      name: "GIAI ĐOẠN 3: ĐÁNH GIÁ & PROPOSAL",
+      subtitle: "Qualify brief, lên proposal, trình bày báo giá, ký hợp đồng",
+      color: "var(--phase3)", bgColor: "var(--phase3-bg)", borderColor: "var(--phase3-border)",
+      steps: [
+        {
+          id: "s4b", num: "Bước 4b", title: "Qualify Brief",
+          desc: "Đánh giá chất lượng brief, phân loại nguồn lực phù hợp",
+          tasks: [
+            "Đánh giá và thống kê mức độ tiềm năng brief",
+            "Phân loại nguồn lực cần thiết",
+            "Cung cấp thông tin cho các bên liên quan"
+          ],
+          pics: ["BD", "Planner"],
+          raci: { R: "BD Executive + Planner", A: "BD Manager", C: "Solution Manager", I: "" },
+          metric: "Qualified Brief",
+          sla: "",
+          system: "",
+          training: ""
+        },
+        {
+          id: "s5", num: "Bước 5", title: "Lên Proposal",
+          desc: "Xây dựng proposal theo brief: đưa ra solution và báo giá",
+          tasks: [
+            "Xây dựng solution phù hợp với nhu cầu",
+            "Đưa ra báo giá chi tiết",
+            "Lên kế hoạch triển khai",
+            "Review và phê duyệt nội bộ"
+          ],
+          pics: ["BD", "Planner"],
+          raci: { R: "BD + Planner", A: "BD Manager", C: "Director", I: "" },
+          metric: null,
+          sla: "",
+          system: "",
+          training: ""
+        },
+        {
+          id: "s6", num: "Bước 6", title: "Trình bày báo giá",
+          desc: "Pitching, presentation báo giá cho KH, follow-up và chỉnh sửa",
+          tasks: [
+            "Tham gia pitching & presentation",
+            "Follow-up status proposal",
+            "Chỉnh sửa báo giá theo feedback",
+            "Post mortem analysis (fail rate)"
+          ],
+          pics: ["BD", "Planner"],
+          raci: { R: "BD Executive", A: "BD Manager", C: "Planner", I: "" },
+          metric: "Quotation Sent",
+          sla: "",
+          system: "",
+          training: ""
+        },
+        {
+          id: "s7", num: "Bước 7", title: "Xác nhận & ký hợp đồng",
+          desc: "Khách xác nhận, soạn thảo và ký hợp đồng, đặt cọc",
+          tasks: [
+            "Khách xác nhận bảng chào",
+            "Soạn thảo hợp đồng",
+            "Trình ký & phê duyệt",
+            "Nhận đặt cọc",
+            "Nhập liệu contract + post mortem (win)"
+          ],
+          pics: ["BD", "Account"],
+          raci: { R: "BD Executive", A: "BD Manager", C: "Account Manager", I: "Finance" },
+          metric: "Contract ✅",
+          sla: "",
+          system: "Contract system",
+          training: ""
+        }
+      ]
+    },
+    {
+      id: "onboard",
+      name: "GIAI ĐOẠN 4: TRIỂN KHAI DỰ ÁN",
+      subtitle: "Khởi động, thiết lập chiến dịch, tối ưu hiệu quả quảng cáo",
+      color: "var(--phase4)", bgColor: "var(--phase4-bg)", borderColor: "var(--phase4-border)",
+      steps: [
+        {
+          id: "s8", num: "Bước 8", title: "Khởi động dự án",
+          desc: "Chuẩn bị tài nguyên, chia sẻ quyền, xây dựng kế hoạch & báo cáo theo dõi",
+          tasks: [
+            "Chuẩn bị checklist tài nguyên",
+            "Chia sẻ quyền đăng nhập các tài khoản",
+            "Xây dựng bảng kế hoạch triển khai",
+            "Thiết lập bảng báo cáo theo dõi",
+            "Kickoff meeting với khách hàng"
+          ],
+          pics: ["Account", "Planner"],
+          raci: { R: "Account Manager + Planner", A: "Account Lead", C: "Media Team", I: "BD" },
+          metric: null,
+          sla: "Sau khi ký HĐ + đặt cọc",
+          system: "",
+          training: ""
+        },
+        {
+          id: "s9", num: "Bước 9", title: "Thiết lập chiến dịch",
+          desc: "Đội ngũ kỹ thuật thiết lập chiến dịch theo kế hoạch và mục đích tối ưu",
+          tasks: [
+            "Thiết lập tài khoản quảng cáo",
+            "Cấu trúc chiến dịch theo mục tiêu",
+            "Setup tracking & conversion",
+            "Launch chiến dịch theo lộ trình"
+          ],
+          pics: ["Media"],
+          raci: { R: "Media Executive", A: "Media Lead", C: "Planner", I: "Account" },
+          metric: null,
+          sla: "",
+          system: "",
+          training: ""
+        },
+        {
+          id: "s10", num: "Bước 10", title: "Theo dõi & tối ưu chiến dịch",
+          desc: "Liên tục theo dõi hiệu quả và tối ưu để đạt kết quả cam kết",
+          tasks: [
+            "Monitor KPIs hàng ngày",
+            "Tối ưu bid, audience, creative",
+            "A/B testing các yếu tố",
+            "Điều chỉnh ngân sách theo hiệu quả",
+            "Escalate issues kịp thời"
+          ],
+          pics: ["Media"],
+          raci: { R: "Media Executive", A: "Media Lead", C: "Planner + Account", I: "" },
+          metric: null,
+          sla: "Daily",
+          system: "",
+          training: ""
+        }
+      ]
+    },
+    {
+      id: "retain",
+      name: "GIAI ĐOẠN 5: QUẢN TRỊ & MỞ RỘNG",
+      subtitle: "Quản lý đầu việc, báo cáo, tái ký và bán chéo sản phẩm",
+      color: "var(--phase5)", bgColor: "var(--phase5-bg)", borderColor: "var(--phase5-border)",
+      steps: [
+        {
+          id: "s11", num: "Bước 11", title: "Quản lý & kiểm soát đầu việc",
+          desc: "Account theo dõi và quản trị toàn bộ đầu việc với khách hàng",
+          tasks: [
+            "Báo cáo tiến độ triển khai",
+            "Báo cáo hiệu quả chiến dịch",
+            "Update yêu cầu & ad-hoc",
+            "Xử lý giấy tờ, HĐ, nghiệm thu"
+          ],
+          pics: ["Account"],
+          raci: { R: "Account Manager", A: "Account Lead", C: "Media + Planner", I: "BD" },
+          metric: null, sla: "Ongoing", system: "", training: ""
+        },
+        {
+          id: "s12", num: "Bước 12", title: "Làm báo cáo khách hàng",
+          desc: "Xây dựng báo cáo tuần/tháng/quý và trình bày cho KH",
+          tasks: [
+            "Báo cáo tuần (weekly report)",
+            "Báo cáo tháng (monthly report)",
+            "Báo cáo quý (quarterly report)",
+            "Thuyết trình báo cáo cho KH"
+          ],
+          pics: ["Account", "Media"],
+          raci: { R: "Account + Media", A: "Account Lead", C: "Planner", I: "" },
+          metric: null, sla: "Tuần / Tháng / Quý", system: "", training: ""
+        },
+        {
+          id: "s13", num: "Bước 13", title: "Kế hoạch giai đoạn mới",
+          desc: "Làm kế hoạch cho tháng mới, quý mới, nửa năm mới",
+          tasks: [
+            "Review kết quả giai đoạn trước",
+            "Đề xuất chiến lược giai đoạn mới",
+            "Lập media plan mới",
+            "Trình bày và duyệt với KH"
+          ],
+          pics: ["Planner", "Account"],
+          raci: { R: "Planner + Account", A: "Account Lead", C: "Media", I: "BD" },
+          metric: null, sla: "Trước khi hết chu kỳ", system: "", training: ""
+        },
+        {
+          id: "s14", num: "Bước 14", title: "Tái ký dự án",
+          desc: "Trước thời hạn hết HĐ 30-60 ngày, thực hiện đánh giá và tái ký",
+          tasks: [
+            "Kiểm tra thời hạn HĐ (trước 30-60 ngày)",
+            "Đánh giá kết quả hợp tác",
+            "Đề xuất kế hoạch giai đoạn mới",
+            "Thúc đẩy tái ký hợp đồng"
+          ],
+          pics: ["Account", "BD"],
+          raci: { R: "Account Manager + BD", A: "Account Lead", C: "Planner", I: "Director" },
+          metric: "CLV",
+          sla: "Trước hết HĐ 30-60 ngày", system: "", training: ""
+        },
+        {
+          id: "s15", num: "Bước 15", title: "Bán chéo & mở rộng",
+          desc: "Mở rộng sản phẩm, bán chéo dịch vụ, tiếp cận kênh mới",
+          tasks: [
+            "Xác định cơ hội upsell / cross-sell",
+            "Đề xuất sản phẩm / kênh mới",
+            "Lên proposal mở rộng",
+            "Xây dựng mối quan hệ dài hạn"
+          ],
+          pics: ["BD", "Account"],
+          raci: { R: "BD + Account", A: "BD Manager + Account Lead", C: "Planner + Media", I: "Director" },
+          metric: null, sla: "Ongoing", system: "", training: ""
+        }
+      ]
+    }
+  ]
+};
+
+// === RENDER ===
+function render() {
+  const container = document.getElementById('journey-container');
+  container.innerHTML = '';
+
+  journeyData.phases.forEach((phase, pi) => {
+    const section = document.createElement('div');
+    section.className = 'phase-section';
+    section.innerHTML = `
+      <div class="phase-header" onclick="togglePhase('${phase.id}')">
+        <div class="phase-indicator" style="background:${phase.color}"></div>
+        <div>
+          <div class="phase-title" style="color:${phase.color}">${phase.name}</div>
+          <div class="phase-subtitle">${phase.subtitle}</div>
+        </div>
+        <div class="phase-metrics">
+          ${phase.steps.filter(s=>s.metric).map(s=>`<span class="metric-badge" style="background:${phase.bgColor};color:${phase.color};border:1px solid ${phase.borderColor}">${s.metric}</span>`).join('')}
+        </div>
+        <span class="phase-toggle" id="toggle-${phase.id}">▼</span>
+      </div>
+      <div class="steps-grid" id="grid-${phase.id}">
+        ${phase.steps.map((step, si) => renderCard(step, phase, si < phase.steps.length - 1)).join('')}
+      </div>
+    `;
+    container.appendChild(section);
+  });
+}
+
+function renderCard(step, phase, showArrow) {
+  const picTags = step.pics.map(p => `<span class="pic-tag pic-${p}">${p}</span>`).join('');
+  const taskItems = step.tasks.map(t => `
+    <li class="task-item">
+      <span class="task-bullet" style="background:${phase.color}"></span>
+      <span>${t}</span>
+    </li>
+  `).join('');
+  const metricBadge = step.metric ? `<div style="margin-top:6px;"><span class="metric-badge" style="background:${phase.bgColor};color:${phase.color};border:1px solid ${phase.borderColor};font-size:10px;padding:3px 8px;">📊 ${step.metric}</span></div>` : '';
+
+  return `
+    <div class="step-card" data-pics='${JSON.stringify(step.pics)}' data-step-id="${step.id}" onclick="openModal('${step.id}')">
+      <div class="card-top" style="border-top:3px solid ${phase.color}">
+        <span class="step-number" style="background:${phase.bgColor};color:${phase.color}">${step.num}</span>
+        <div class="card-title">${step.title}</div>
+        <div class="card-desc">${step.desc}</div>
+        ${metricBadge}
+      </div>
+      <div class="card-body">
+        <ul class="task-list">${taskItems}</ul>
+      </div>
+      <div class="card-footer">
+        ${picTags}
+        ${step.sla ? `<span style="margin-left:auto;font-size:10px;color:var(--gray-500)">⏱ ${step.sla}</span>` : ''}
+      </div>
+    </div>
+    ${showArrow ? '<div class="arrow-connector">→</div>' : ''}
+  `;
+}
+
+// === FILTER ===
+function filterPIC(pic) {
+  document.querySelectorAll('.filter-btn[data-pic]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.filter-btn[data-pic="${pic}"]`).classList.add('active');
+
+  document.querySelectorAll('.step-card').forEach(card => {
+    const pics = JSON.parse(card.dataset.pics);
+    if (pic === 'all') {
+      card.classList.remove('dimmed', 'highlighted');
+    } else if (pics.includes(pic)) {
+      card.classList.remove('dimmed');
+      card.classList.add('highlighted');
+    } else {
+      card.classList.add('dimmed');
+      card.classList.remove('highlighted');
+    }
+  });
+}
+
+// === TOGGLE PHASE ===
+function togglePhase(phaseId) {
+  const grid = document.getElementById('grid-' + phaseId);
+  const toggle = document.getElementById('toggle-' + phaseId);
+  grid.classList.toggle('collapsed');
+  toggle.classList.toggle('collapsed');
+}
+
+// === MODAL ===
+function openModal(stepId) {
+  event.stopPropagation();
+  let step, phase;
+  for (const p of journeyData.phases) {
+    const s = p.steps.find(s => s.id === stepId);
+    if (s) { step = s; phase = p; break; }
+  }
+  if (!step) return;
+
+  document.getElementById('modal-step-num').innerHTML = `<span style="background:${phase.bgColor};color:${phase.color};padding:2px 8px;border-radius:4px;font-weight:700">${step.num}</span>`;
+  document.getElementById('modal-title').textContent = step.title;
+
+  const raciRows = Object.entries(step.raci).filter(([k,v]) => v).map(([k,v]) => `<tr><td><strong>${k}</strong></td><td>${v}</td></tr>`).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-section">
+      <h3>Mô tả</h3>
+      <p>${step.desc}</p>
+    </div>
+    <div class="modal-section">
+      <h3>Đầu việc chi tiết</h3>
+      <ul>${step.tasks.map(t => `<li>${t}</li>`).join('')}</ul>
+    </div>
+    <div class="modal-section">
+      <h3>PIC — RACI Matrix</h3>
+      <table class="raci-table">
+        <tr><th>Vai trò</th><th>Người / Nhóm</th></tr>
+        ${raciRows}
+      </table>
+    </div>
+    ${step.sla ? `<div class="modal-section"><h3>SLA / Thời gian</h3><p>${step.sla}</p></div>` : ''}
+    ${step.system ? `<div class="modal-section"><h3>Hệ thống</h3><p>${step.system}</p></div>` : ''}
+    ${step.training ? `<div class="modal-section"><h3>Training / Guideline</h3><p>${step.training}</p></div>` : ''}
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button class="save-btn" style="background:var(--gray-700)" onclick="closeModal();openEditPanel('${step.id}')">✏️ Chỉnh sửa step này</button>
+    </div>
+  `;
+
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+// === EDIT PANEL ===
+function openEditPanel(stepId) {
+  let step, phase, phaseIdx, stepIdx;
+  journeyData.phases.forEach((p, pi) => {
+    p.steps.forEach((s, si) => {
+      if (s.id === stepId) { step = s; phase = p; phaseIdx = pi; stepIdx = si; }
+    });
+  });
+  if (!step) return;
+
+  const tasksHtml = step.tasks.map((t, i) => `
+    <div style="display:flex;gap:4px;margin-bottom:4px;">
+      <input value="${t}" data-task-idx="${i}" style="flex:1;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;">
+      <button onclick="removeTask('${stepId}',${i})" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+  `).join('');
+
+  document.getElementById('editPanelBody').innerHTML = `
+    <input type="hidden" id="edit-step-id" value="${stepId}">
+    <div class="edit-field">
+      <label>Tên step</label>
+      <input id="edit-title" value="${step.title}">
+    </div>
+    <div class="edit-field">
+      <label>Mô tả</label>
+      <textarea id="edit-desc">${step.desc}</textarea>
+    </div>
+    <div class="edit-field">
+      <label>Đầu việc</label>
+      <div id="edit-tasks">${tasksHtml}</div>
+      <button class="add-task-btn" onclick="addTaskField('${stepId}')">+ Thêm đầu việc</button>
+    </div>
+    <div class="edit-field">
+      <label>PIC (chọn nhiều)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${['BD','Account','Planner','Media'].map(p => `
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" value="${p}" class="pic-check" ${step.pics.includes(p)?'checked':''}>
+            <span class="pic-tag pic-${p}">${p}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    <div class="edit-field">
+      <label>R - Responsible</label>
+      <input id="edit-raci-r" value="${step.raci.R||''}">
+    </div>
+    <div class="edit-field">
+      <label>A - Accountable</label>
+      <input id="edit-raci-a" value="${step.raci.A||''}">
+    </div>
+    <div class="edit-field">
+      <label>C - Consulted</label>
+      <input id="edit-raci-c" value="${step.raci.C||''}">
+    </div>
+    <div class="edit-field">
+      <label>I - Informed</label>
+      <input id="edit-raci-i" value="${step.raci.I||''}">
+    </div>
+    <div class="edit-field">
+      <label>SLA / Thời gian</label>
+      <input id="edit-sla" value="${step.sla||''}">
+    </div>
+    <div class="edit-field">
+      <label>Metric</label>
+      <input id="edit-metric" value="${step.metric||''}">
+    </div>
+    <div class="edit-field">
+      <label>Hệ thống</label>
+      <input id="edit-system" value="${step.system||''}">
+    </div>
+    <button class="save-btn" onclick="saveEdit()">💾 Lưu thay đổi</button>
+    <button class="save-btn" style="background:#ef4444;margin-top:8px;" onclick="if(confirm('Xoá step này?')){deleteStep('${stepId}')}">🗑️ Xoá step</button>
+    <button class="add-task-btn" style="margin-top:12px;font-size:12px;color:var(--phase3)" onclick="addNewStep('${phase.id}',${stepIdx})">+ Thêm step mới sau step này</button>
+  `;
+
+  document.getElementById('editPanel').classList.add('open');
+}
+
+function closeEditPanel() { document.getElementById('editPanel').classList.remove('open'); }
+
+function addTaskField(stepId) {
+  const container = document.getElementById('edit-tasks');
+  const idx = container.children.length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:4px;margin-bottom:4px;';
+  div.innerHTML = `<input data-task-idx="${idx}" style="flex:1;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;" placeholder="Nhập đầu việc mới..."><button onclick="this.parentElement.remove()" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:14px;">✕</button>`;
+  container.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function removeTask(stepId, idx) {
+  let step;
+  for (const p of journeyData.phases) { step = p.steps.find(s=>s.id===stepId); if(step) break; }
+  if (step) { step.tasks.splice(idx, 1); openEditPanel(stepId); }
+}
+
+function saveEdit() {
+  const stepId = document.getElementById('edit-step-id').value;
+  let step;
+  for (const p of journeyData.phases) { step = p.steps.find(s=>s.id===stepId); if(step) break; }
+  if (!step) return;
+
+  step.title = document.getElementById('edit-title').value;
+  step.desc = document.getElementById('edit-desc').value;
+  step.tasks = [...document.querySelectorAll('#edit-tasks input')].map(i=>i.value).filter(v=>v.trim());
+  step.pics = [...document.querySelectorAll('.pic-check:checked')].map(c=>c.value);
+  step.raci = {
+    R: document.getElementById('edit-raci-r').value,
+    A: document.getElementById('edit-raci-a').value,
+    C: document.getElementById('edit-raci-c').value,
+    I: document.getElementById('edit-raci-i').value
+  };
+  step.sla = document.getElementById('edit-sla').value;
+  step.metric = document.getElementById('edit-metric').value || null;
+  step.system = document.getElementById('edit-system').value;
+
+  render();
+  closeEditPanel();
+}
+
+function deleteStep(stepId) {
+  journeyData.phases.forEach(p => { p.steps = p.steps.filter(s => s.id !== stepId); });
+  render();
+  closeEditPanel();
+}
+
+function addNewStep(phaseId, afterIdx) {
+  const phase = journeyData.phases.find(p => p.id === phaseId);
+  if (!phase) return;
+  const newId = 'custom_' + Date.now();
+  const newStep = {
+    id: newId, num: "Mới", title: "Step mới",
+    desc: "Mô tả step mới", tasks: ["Đầu việc 1"],
+    pics: ["BD"], raci: {R:"",A:"",C:"",I:""},
+    metric: null, sla: "", system: "", training: ""
+  };
+  phase.steps.splice(afterIdx + 1, 0, newStep);
+  render();
+  openEditPanel(newId);
+}
+
+// === VIEW TOGGLE ===
+function switchView(view) {
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  if (view === 'list') {
+    document.querySelectorAll('.steps-grid').forEach(g => { g.style.flexDirection = 'column'; g.style.maxWidth = '600px'; });
+    document.querySelectorAll('.step-card').forEach(c => { c.style.maxWidth = '100%'; c.style.minWidth = '100%'; });
+    document.querySelectorAll('.arrow-connector').forEach(a => { a.innerHTML = '↓'; });
+  } else {
+    document.querySelectorAll('.steps-grid').forEach(g => { g.style.flexDirection = ''; g.style.maxWidth = ''; });
+    document.querySelectorAll('.step-card').forEach(c => { c.style.maxWidth = ''; c.style.minWidth = ''; });
+    document.querySelectorAll('.arrow-connector').forEach(a => { a.innerHTML = '→'; });
+  }
+}
+
+// === EXPORT / IMPORT ===
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(journeyData, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pinpoint-journey-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importJSON() { document.getElementById('importFile').click(); }
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      journeyData = JSON.parse(ev.target.result);
+      render();
+      alert('Import thành công!');
+    } catch(err) { alert('File JSON không hợp lệ'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// === KEYBOARD ===
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeEditPanel(); }
+});
+
+// === INIT ===
+render();
+</script>
+</body>
+</html>
