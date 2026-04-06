@@ -1,0 +1,518 @@
+{
+  "phases": [
+    {
+      "id": "presale",
+      "name": "GIAI ĐOẠN 1: CHUẨN BỊ & XÂY DỰNG DỮ LIỆU",
+      "subtitle": "Xây dựng database, phân bổ dữ liệu, nghiên cứu khách hàng",
+      "color": "var(--phase1)",
+      "bgColor": "var(--phase1-bg)",
+      "borderColor": "var(--phase1-border)",
+      "steps": [
+        {
+          "id": "s1",
+          "num": "Bước 1",
+          "title": "Xây dựng dữ liệu thông tin KH",
+          "desc": "Tìm kiếm, bổ sung và chuẩn hoá danh sách dữ liệu khách hàng tiềm năng phục vụ nghiên cứu và tiếp cận",
+          "tasks": [
+            "Nhận danh sách dữ liệu được giao",
+            "Tìm kiếm, tổng hợp thông tin theo mã số thuế",
+            "Điền thông tin: ngành hàng, sản phẩm, đối thủ, xuất xứ",
+            "Điền thông tin contact (3 trường cơ bản + title)",
+            "Nhập liệu vào Hubspot system"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Intern",
+            "A": "BD Leader",
+            "C": "BD Manager",
+            "I": "BD Director"
+          },
+          "metric": null,
+          "sla": "100 dữ liệu / ngày",
+          "system": "Google Sheets + Hubspot",
+          "training": "BD Scrapping Training v112025"
+        },
+        {
+          "id": "s1b",
+          "num": "Bước 1b",
+          "title": "Phân bổ dữ liệu cho BDE",
+          "desc": "Phân chia dữ liệu, database cho các BDE để tiếp cận, theo dõi và chuyển đổi",
+          "tasks": [
+            "Review hiệu quả và năng lực BDE",
+            "Phân bổ dữ liệu mới theo forecast và năng lực",
+            "Phân bổ theo ngành, sản phẩm, tiered tiềm năng",
+            "Kiểm tra và thông báo"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Manager",
+            "A": "BD Director",
+            "C": "",
+            "I": "MD"
+          },
+          "metric": null,
+          "sla": "Monthly",
+          "system": "Master Data Client Management",
+          "training": "BD allocation data v112025"
+        },
+        {
+          "id": "s1c",
+          "num": "Bước 1c",
+          "title": "Nghiên cứu & thẩm định KH",
+          "desc": "BDE kiểm tra cơ sở dữ liệu, lên kế hoạch, thống kê thông tin KH chuẩn bị tiếp cận",
+          "tasks": [
+            "Filter dữ liệu được phân bổ",
+            "Research thông tin: wallet, chiến dịch, giải pháp",
+            "Đánh giá: sản phẩm, đối thủ, painpoint",
+            "Xác định người ra quyết định & quy trình",
+            "Sự kiện gần đây của KH"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Executive (Hunter)",
+            "A": "BD Leader",
+            "C": "BD Director / Product Manager",
+            "I": "MD"
+          },
+          "metric": null,
+          "sla": "Daily (1h30-3h00)",
+          "system": "Master Client Data + Hubspot",
+          "training": "Target clients & Potential clients v012025"
+        }
+      ]
+    },
+    {
+      "id": "outreach",
+      "name": "GIAI ĐOẠN 2: TIẾP CẬN & NUÔI DƯỠNG",
+      "subtitle": "Cold call, follow-up, chăm sóc và thiết lập quan hệ khách hàng",
+      "color": "var(--phase2)",
+      "bgColor": "var(--phase2-bg)",
+      "borderColor": "var(--phase2-border)",
+      "steps": [
+        {
+          "id": "s2",
+          "num": "Bước 2",
+          "title": "Tiếp cận khách hàng",
+          "desc": "Gọi điện kết nối, theo dõi và tạo lịch hẹn với khách hàng",
+          "tasks": [
+            "Lên kế hoạch gọi điện theo chỉ tiêu ngày",
+            "Cold call theo giờ vàng (10-11h30, 3h-5h30)",
+            "Tư vấn giải pháp và đặt lịch hẹn",
+            "Bám theo guideline & đánh giá hiệu quả cuộc gọi",
+            "Nhập liệu Hubspot cuối ngày (5h30)"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Executive (Hunter)",
+            "A": "BD Leader",
+            "C": "BD Manager",
+            "I": ""
+          },
+          "metric": null,
+          "sla": "Daily (giờ vàng)",
+          "system": "Personal Dashboard + Hubspot",
+          "training": "Call script training v102025"
+        },
+        {
+          "id": "s3",
+          "num": "Bước 3",
+          "title": "Nuôi dưỡng khách hàng",
+          "desc": "Follow-up warm lead, tương tác để tạo mối quan hệ lâu dài",
+          "tasks": [
+            "Follow-up warm lead & inactive lead",
+            "Gửi thông tin hữu ích tạo giá trị",
+            "Tạo tương tác: quà tặng, ăn uống, gặp mặt",
+            "Thu thập thêm nhu cầu của KH"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Executive (Hunter)",
+            "A": "BD Lead / BD Manager",
+            "C": "BD Lead / BD Manager",
+            "I": ""
+          },
+          "metric": "Qualified Lead",
+          "sla": "Ongoing",
+          "system": "Master Client Data + Hubspot",
+          "training": ""
+        },
+        {
+          "id": "s4",
+          "num": "Bước 4",
+          "title": "Đặt lịch hẹn & lấy Brief",
+          "desc": "Thiết lập buổi gặp mặt, thu thập brief chi tiết từ khách hàng",
+          "tasks": [
+            "Đặt lịch và gặp trực tiếp khách hàng",
+            "Xác định nhu cầu chi tiết",
+            "Thu thập brief đầy đủ",
+            "Đánh giá mức độ tiềm năng"
+          ],
+          "pics": [
+            "BD"
+          ],
+          "raci": {
+            "R": "BD Executive",
+            "A": "BD Leader",
+            "C": "",
+            "I": ""
+          },
+          "metric": "Brief",
+          "sla": "",
+          "system": "",
+          "training": ""
+        }
+      ]
+    },
+    {
+      "id": "qualify",
+      "name": "GIAI ĐOẠN 3: ĐÁNH GIÁ & PROPOSAL",
+      "subtitle": "Qualify brief, lên proposal, trình bày báo giá, ký hợp đồng",
+      "color": "var(--phase3)",
+      "bgColor": "var(--phase3-bg)",
+      "borderColor": "var(--phase3-border)",
+      "steps": [
+        {
+          "id": "s4b",
+          "num": "Bước 4b",
+          "title": "Qualify Brief",
+          "desc": "Đánh giá chất lượng brief, phân loại nguồn lực phù hợp",
+          "tasks": [
+            "Đánh giá và thống kê mức độ tiềm năng brief",
+            "Phân loại nguồn lực cần thiết",
+            "Cung cấp thông tin cho các bên liên quan"
+          ],
+          "pics": [
+            "BD",
+            "Planner"
+          ],
+          "raci": {
+            "R": "BD Executive + Planner",
+            "A": "BD Manager",
+            "C": "Solution Manager",
+            "I": ""
+          },
+          "metric": "Qualified Brief",
+          "sla": "",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s5",
+          "num": "Bước 5",
+          "title": "Lên Proposal",
+          "desc": "Xây dựng proposal theo brief: đưa ra solution và báo giá",
+          "tasks": [
+            "Xây dựng solution phù hợp với nhu cầu",
+            "Đưa ra báo giá chi tiết",
+            "Lên kế hoạch triển khai",
+            "Review và phê duyệt nội bộ"
+          ],
+          "pics": [
+            "BD",
+            "Planner"
+          ],
+          "raci": {
+            "R": "BD + Planner",
+            "A": "BD Manager",
+            "C": "Director",
+            "I": ""
+          },
+          "metric": null,
+          "sla": "",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s6",
+          "num": "Bước 6",
+          "title": "Trình bày báo giá",
+          "desc": "Pitching, presentation báo giá cho KH, follow-up và chỉnh sửa",
+          "tasks": [
+            "Tham gia pitching & presentation",
+            "Follow-up status proposal",
+            "Chỉnh sửa báo giá theo feedback",
+            "Post mortem analysis (fail rate)"
+          ],
+          "pics": [
+            "BD",
+            "Planner"
+          ],
+          "raci": {
+            "R": "BD Executive",
+            "A": "BD Manager",
+            "C": "Planner",
+            "I": ""
+          },
+          "metric": "Quotation Sent",
+          "sla": "",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s7",
+          "num": "Bước 7",
+          "title": "Xác nhận & ký hợp đồng",
+          "desc": "Khách xác nhận, soạn thảo và ký hợp đồng, đặt cọc",
+          "tasks": [
+            "Khách xác nhận bảng chào",
+            "Soạn thảo hợp đồng",
+            "Trình ký & phê duyệt",
+            "Nhận đặt cọc",
+            "Nhập liệu contract + post mortem (win)"
+          ],
+          "pics": [
+            "BD",
+            "Account"
+          ],
+          "raci": {
+            "R": "BD Executive",
+            "A": "BD Manager",
+            "C": "Account Manager",
+            "I": "Finance"
+          },
+          "metric": "Contract ✅",
+          "sla": "",
+          "system": "Contract system",
+          "training": ""
+        }
+      ]
+    },
+    {
+      "id": "onboard",
+      "name": "GIAI ĐOẠN 4: TRIỂN KHAI DỰ ÁN",
+      "subtitle": "Khởi động, thiết lập chiến dịch, tối ưu hiệu quả quảng cáo",
+      "color": "var(--phase4)",
+      "bgColor": "var(--phase4-bg)",
+      "borderColor": "var(--phase4-border)",
+      "steps": [
+        {
+          "id": "s8",
+          "num": "Bước 8",
+          "title": "Khởi động dự án",
+          "desc": "Chuẩn bị tài nguyên, chia sẻ quyền, xây dựng kế hoạch & báo cáo theo dõi",
+          "tasks": [
+            "Chuẩn bị checklist tài nguyên",
+            "Chia sẻ quyền đăng nhập các tài khoản",
+            "Xây dựng bảng kế hoạch triển khai",
+            "Thiết lập bảng báo cáo theo dõi",
+            "Kickoff meeting với khách hàng"
+          ],
+          "pics": [
+            "Account",
+            "Planner"
+          ],
+          "raci": {
+            "R": "Account Manager + Planner",
+            "A": "Account Lead",
+            "C": "Media Team",
+            "I": "BD"
+          },
+          "metric": null,
+          "sla": "Sau khi ký HĐ + đặt cọc",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s9",
+          "num": "Bước 9",
+          "title": "Thiết lập chiến dịch",
+          "desc": "Đội ngũ kỹ thuật thiết lập chiến dịch theo kế hoạch và mục đích tối ưu",
+          "tasks": [
+            "Thiết lập tài khoản quảng cáo",
+            "Cấu trúc chiến dịch theo mục tiêu",
+            "Setup tracking & conversion",
+            "Launch chiến dịch theo lộ trình"
+          ],
+          "pics": [
+            "Media"
+          ],
+          "raci": {
+            "R": "Media Executive",
+            "A": "Media Lead",
+            "C": "Planner",
+            "I": "Account"
+          },
+          "metric": null,
+          "sla": "",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s10",
+          "num": "Bước 10",
+          "title": "Theo dõi & tối ưu chiến dịch",
+          "desc": "Liên tục theo dõi hiệu quả và tối ưu để đạt kết quả cam kết",
+          "tasks": [
+            "Monitor KPIs hàng ngày",
+            "Tối ưu bid, audience, creative",
+            "A/B testing các yếu tố",
+            "Điều chỉnh ngân sách theo hiệu quả",
+            "Escalate issues kịp thời"
+          ],
+          "pics": [
+            "Media"
+          ],
+          "raci": {
+            "R": "Media Executive",
+            "A": "Media Lead",
+            "C": "Planner + Account",
+            "I": ""
+          },
+          "metric": null,
+          "sla": "Daily",
+          "system": "",
+          "training": ""
+        }
+      ]
+    },
+    {
+      "id": "retain",
+      "name": "GIAI ĐOẠN 5: QUẢN TRỊ & MỞ RỘNG",
+      "subtitle": "Quản lý đầu việc, báo cáo, tái ký và bán chéo sản phẩm",
+      "color": "var(--phase5)",
+      "bgColor": "var(--phase5-bg)",
+      "borderColor": "var(--phase5-border)",
+      "steps": [
+        {
+          "id": "s11",
+          "num": "Bước 11",
+          "title": "Quản lý & kiểm soát đầu việc",
+          "desc": "Account theo dõi và quản trị toàn bộ đầu việc với khách hàng",
+          "tasks": [
+            "Báo cáo tiến độ triển khai",
+            "Báo cáo hiệu quả chiến dịch",
+            "Update yêu cầu & ad-hoc",
+            "Xử lý giấy tờ, HĐ, nghiệm thu"
+          ],
+          "pics": [
+            "Account"
+          ],
+          "raci": {
+            "R": "Account Manager",
+            "A": "Account Lead",
+            "C": "Media + Planner",
+            "I": "BD"
+          },
+          "metric": null,
+          "sla": "Ongoing",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s12",
+          "num": "Bước 12",
+          "title": "Làm báo cáo khách hàng",
+          "desc": "Xây dựng báo cáo tuần/tháng/quý và trình bày cho KH",
+          "tasks": [
+            "Báo cáo tuần (weekly report)",
+            "Báo cáo tháng (monthly report)",
+            "Báo cáo quý (quarterly report)",
+            "Thuyết trình báo cáo cho KH"
+          ],
+          "pics": [
+            "Account",
+            "Media"
+          ],
+          "raci": {
+            "R": "Account + Media",
+            "A": "Account Lead",
+            "C": "Planner",
+            "I": ""
+          },
+          "metric": null,
+          "sla": "Tuần / Tháng / Quý",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s13",
+          "num": "Bước 13",
+          "title": "Kế hoạch giai đoạn mới",
+          "desc": "Làm kế hoạch cho tháng mới, quý mới, nửa năm mới",
+          "tasks": [
+            "Review kết quả giai đoạn trước",
+            "Đề xuất chiến lược giai đoạn mới",
+            "Lập media plan mới",
+            "Trình bày và duyệt với KH"
+          ],
+          "pics": [
+            "Planner",
+            "Account"
+          ],
+          "raci": {
+            "R": "Planner + Account",
+            "A": "Account Lead",
+            "C": "Media",
+            "I": "BD"
+          },
+          "metric": null,
+          "sla": "Trước khi hết chu kỳ",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s14",
+          "num": "Bước 14",
+          "title": "Tái ký dự án",
+          "desc": "Trước thời hạn hết HĐ 30-60 ngày, thực hiện đánh giá và tái ký",
+          "tasks": [
+            "Kiểm tra thời hạn HĐ (trước 30-60 ngày)",
+            "Đánh giá kết quả hợp tác",
+            "Đề xuất kế hoạch giai đoạn mới",
+            "Thúc đẩy tái ký hợp đồng"
+          ],
+          "pics": [
+            "Account",
+            "BD"
+          ],
+          "raci": {
+            "R": "Account Manager + BD",
+            "A": "Account Lead",
+            "C": "Planner",
+            "I": "Director"
+          },
+          "metric": "CLV",
+          "sla": "Trước hết HĐ 30-60 ngày",
+          "system": "",
+          "training": ""
+        },
+        {
+          "id": "s15",
+          "num": "Bước 15",
+          "title": "Bán chéo & mở rộng",
+          "desc": "Mở rộng sản phẩm, bán chéo dịch vụ, tiếp cận kênh mới",
+          "tasks": [
+            "Xác định cơ hội upsell / cross-sell",
+            "Đề xuất sản phẩm / kênh mới",
+            "Lên proposal mở rộng",
+            "Xây dựng mối quan hệ dài hạn"
+          ],
+          "pics": [
+            "BD",
+            "Account"
+          ],
+          "raci": {
+            "R": "BD + Account",
+            "A": "BD Manager + Account Lead",
+            "C": "Planner + Media",
+            "I": "Director"
+          },
+          "metric": null,
+          "sla": "Ongoing",
+          "system": "",
+          "training": ""
+        }
+      ]
+    }
+  ]
+}

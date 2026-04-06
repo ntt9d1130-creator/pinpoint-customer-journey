@@ -160,9 +160,12 @@
     <button class="filter-btn" data-pic="Media" onclick="filterPIC('Media')">Media</button>
   </div>
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 8px;"></div>
-  <button class="filter-btn" onclick="exportJSON()" title="Export cấu hình">📥 Export JSON</button>
-  <button class="filter-btn" onclick="importJSON()" title="Import cấu hình">📤 Import JSON</button>
-  <button class="filter-btn" onclick="resetToDefault()" title="Reset về bản gốc">🔄 Reset</button>
+  <button class="filter-btn" onclick="cloudSave()" title="Lưu thay đổi lên GitHub" style="border-color:#10b981;color:#10b981;font-weight:600;">☁️ Lưu lên Cloud</button>
+  <button class="filter-btn" onclick="cloudLoad().then(()=>{render();showIndicator('☁️ Đã tải lại từ cloud','#6366f1')})" title="Tải lại từ GitHub">🔄 Tải lại</button>
+  <span id="token-status" style="font-size:10px;cursor:pointer;" onclick="disconnectToken()" title="Click để xoá token"></span>
+  <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 4px;"></div>
+  <button class="filter-btn" onclick="exportJSON()" title="Export JSON backup">📥 Export</button>
+  <button class="filter-btn" onclick="importJSON()" title="Import JSON">📤 Import</button>
   <button class="filter-btn" onclick="window.print()" title="In">🖨️ Print</button>
   <div class="view-toggle">
     <button class="view-btn active" onclick="switchView('card')">Card</button>
@@ -836,61 +839,144 @@ function handleImport(e) {
   e.target.value = '';
 }
 
-// === AUTO-SAVE (localStorage) ===
+// === GITHUB CLOUD SYNC ===
+const GITHUB_REPO = 'ntt9d1130-creator/pinpoint-customer-journey';
+const DATA_FILE = 'data.json';
 const STORAGE_KEY = 'pinpoint_journey_data_v1';
+const TOKEN_KEY = 'gh_token_pinpoint';
 
-function autoSave() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(journeyData));
-    showSaveIndicator();
-  } catch(e) { console.warn('Auto-save failed:', e); }
-}
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
 
-function autoLoad() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      journeyData = JSON.parse(saved);
-      return true;
-    }
-  } catch(e) { console.warn('Auto-load failed:', e); }
-  return false;
-}
-
-function showSaveIndicator() {
+function showIndicator(msg, color) {
   let el = document.getElementById('save-indicator');
   if (!el) {
     el = document.createElement('div');
     el.id = 'save-indicator';
-    el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;z-index:300;pointer-events:none;';
+    el.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;z-index:300;pointer-events:none;color:white;';
     document.body.appendChild(el);
   }
-  el.textContent = '✅ Đã lưu tự động';
+  el.style.background = color || '#10b981';
+  el.textContent = msg;
   el.style.opacity = '1';
-  setTimeout(() => { el.style.opacity = '0'; }, 1500);
+  setTimeout(() => { el.style.opacity = '0'; }, 2500);
+}
+
+// --- LOAD from GitHub (public, no token needed) ---
+async function cloudLoad() {
+  try {
+    const url = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${DATA_FILE}?t=${Date.now()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    journeyData = data;
+    // Also cache in localStorage for offline
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch(e) {
+    console.warn('Cloud load failed, trying localStorage:', e);
+    // Fallback to localStorage
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) { journeyData = JSON.parse(saved); return true; }
+    } catch(e2) {}
+    return false;
+  }
+}
+
+// --- SAVE to GitHub (needs token) ---
+async function cloudSave() {
+  const token = getToken();
+  if (!token) {
+    promptForToken('Để lưu chỉnh sửa lên cloud, nhập GitHub Personal Access Token:');
+    return;
+  }
+
+  showIndicator('⏳ Đang lưu lên GitHub...', '#6366f1');
+  try {
+    // Get current file SHA (needed for update)
+    const metaRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${DATA_FILE}`, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    let sha = '';
+    if (metaRes.ok) {
+      const meta = await metaRes.json();
+      sha = meta.sha;
+    }
+
+    // Commit new content
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(journeyData, null, 2))));
+    const body = {
+      message: `Update journey data - ${new Date().toLocaleString('vi-VN')}`,
+      content: content,
+      branch: 'main'
+    };
+    if (sha) body.sha = sha;
+
+    const saveRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${DATA_FILE}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!saveRes.ok) {
+      const err = await saveRes.json();
+      if (saveRes.status === 401 || saveRes.status === 403) {
+        localStorage.removeItem(TOKEN_KEY);
+        showIndicator('❌ Token hết hạn. Nhấn Lưu lại để nhập token mới.', '#ef4444');
+      } else {
+        showIndicator('❌ Lỗi: ' + (err.message || saveRes.status), '#ef4444');
+      }
+      return;
+    }
+
+    // Also update localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(journeyData));
+    showIndicator('✅ Đã lưu lên GitHub!', '#10b981');
+  } catch(e) {
+    console.error('Cloud save failed:', e);
+    showIndicator('❌ Lỗi kết nối: ' + e.message, '#ef4444');
+  }
+}
+
+function promptForToken(msg) {
+  const token = prompt(msg + '\n\nTạo token tại: github.com/settings/tokens → Fine-grained → Repo contents: Read & Write');
+  if (token && token.trim()) {
+    setToken(token.trim());
+    cloudSave(); // Retry save
+  }
 }
 
 function resetToDefault() {
-  if (confirm('Xoá toàn bộ chỉnh sửa và quay về bản gốc?')) {
+  if (confirm('Xoá toàn bộ chỉnh sửa local và tải lại từ GitHub?')) {
     localStorage.removeItem(STORAGE_KEY);
     location.reload();
   }
 }
 
-// Patch saveEdit to auto-save
+function disconnectToken() {
+  if (confirm('Xoá GitHub token khỏi trình duyệt này?')) {
+    localStorage.removeItem(TOKEN_KEY);
+    showIndicator('🔓 Đã xoá token', '#f59e0b');
+  }
+}
+
+// Patch saveEdit to cloud-save
 const _origSaveEdit = saveEdit;
-saveEdit = function() { _origSaveEdit(); autoSave(); };
+saveEdit = function() { _origSaveEdit(); cloudSave(); };
 
-// Patch deleteStep to auto-save
+// Patch deleteStep to cloud-save
 const _origDeleteStep = deleteStep;
-deleteStep = function(id) { _origDeleteStep(id); autoSave(); };
+deleteStep = function(id) { _origDeleteStep(id); cloudSave(); };
 
-// Patch addNewStep to auto-save
+// Patch addNewStep to cloud-save
 const _origAddNewStep = addNewStep;
-addNewStep = function(phaseId, afterIdx) { _origAddNewStep(phaseId, afterIdx); autoSave(); };
+addNewStep = function(phaseId, afterIdx) { _origAddNewStep(phaseId, afterIdx); cloudSave(); };
 
-// Patch handleImport to auto-save
-const _origHandleImport = handleImport;
+// Patch handleImport to cloud-save
 handleImport = function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -899,8 +985,7 @@ handleImport = function(e) {
     try {
       journeyData = JSON.parse(ev.target.result);
       render();
-      autoSave();
-      alert('Import thành công! Dữ liệu đã được lưu.');
+      cloudSave();
     } catch(err) { alert('File JSON không hợp lệ'); }
   };
   reader.readAsText(file);
@@ -913,15 +998,18 @@ document.addEventListener('keydown', e => {
 });
 
 // === INIT ===
-const loaded = autoLoad();
-render();
-if (loaded) {
-  let el = document.createElement('div');
-  el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--phase1);color:white;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;opacity:1;transition:opacity .3s;z-index:300;pointer-events:none;';
-  el.textContent = '📂 Đã tải bản chỉnh sửa đã lưu';
-  document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(()=>el.remove(), 300); }, 2500);
-}
+(async () => {
+  const loaded = await cloudLoad();
+  render();
+  if (loaded) showIndicator('☁️ Đã tải dữ liệu từ cloud', '#6366f1');
+
+  // Show token status
+  const tokenStatus = document.getElementById('token-status');
+  if (tokenStatus) {
+    tokenStatus.textContent = getToken() ? '🟢 Connected' : '🔴 Chưa kết nối';
+    tokenStatus.style.color = getToken() ? '#10b981' : '#ef4444';
+  }
+})();
 </script>
 </body>
 </html>
