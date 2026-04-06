@@ -160,9 +160,8 @@
     <button class="filter-btn" data-pic="Media" onclick="filterPIC('Media')">Media</button>
   </div>
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 8px;"></div>
-  <button class="filter-btn" onclick="cloudSave()" title="Lưu thay đổi lên GitHub" style="border-color:#10b981;color:#10b981;font-weight:600;">☁️ Lưu lên Cloud</button>
-  <button class="filter-btn" onclick="cloudLoad().then(()=>{render();showIndicator('☁️ Đã tải lại từ cloud','#6366f1')})" title="Tải lại từ GitHub">🔄 Tải lại</button>
-  <span id="token-status" style="font-size:10px;cursor:pointer;" onclick="disconnectToken()" title="Click để xoá token"></span>
+  <button class="filter-btn" onclick="cloudSave()" title="Lưu lên cloud" style="border-color:#10b981;color:#10b981;font-weight:600;">☁️ Lưu</button>
+  <button class="filter-btn" onclick="cloudLoad().then(()=>{render();showIndicator('☁️ Đã tải lại','#6366f1')})" title="Tải lại từ cloud">🔄 Tải lại</button>
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 4px;"></div>
   <button class="filter-btn" onclick="exportJSON()" title="Export JSON backup">📥 Export</button>
   <button class="filter-btn" onclick="importJSON()" title="Import JSON">📤 Import</button>
@@ -839,14 +838,9 @@ function handleImport(e) {
   e.target.value = '';
 }
 
-// === GITHUB CLOUD SYNC ===
-const GITHUB_REPO = 'ntt9d1130-creator/pinpoint-customer-journey';
-const DATA_FILE = 'data.json';
-const STORAGE_KEY = 'pinpoint_journey_data_v1';
-const TOKEN_KEY = 'gh_token_pinpoint';
-
-function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
-function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+// === CLOUD SYNC (jsonblob.com — zero setup, no token) ===
+const BLOB_ID = '019d60ac-8557-7c5c-9aa2-55c360106ab9';
+const BLOB_URL = `https://jsonblob.com/api/jsonBlob/${BLOB_ID}`;
 
 function showIndicator(msg, color) {
   let el = document.getElementById('save-indicator');
@@ -862,105 +856,39 @@ function showIndicator(msg, color) {
   setTimeout(() => { el.style.opacity = '0'; }, 2500);
 }
 
-// --- LOAD from GitHub (public, no token needed) ---
+// --- LOAD from cloud ---
 async function cloudLoad() {
   try {
-    const url = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${DATA_FILE}?t=${Date.now()}`;
-    const res = await fetch(url);
+    const res = await fetch(BLOB_URL, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    journeyData = data;
-    // Also cache in localStorage for offline
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    journeyData = await res.json();
     return true;
   } catch(e) {
-    console.warn('Cloud load failed, trying localStorage:', e);
-    // Fallback to localStorage
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) { journeyData = JSON.parse(saved); return true; }
-    } catch(e2) {}
+    console.warn('Cloud load failed:', e);
     return false;
   }
 }
 
-// --- SAVE to GitHub (needs token) ---
+// --- SAVE to cloud (auto, no token needed) ---
 async function cloudSave() {
-  const token = getToken();
-  if (!token) {
-    promptForToken('Để lưu chỉnh sửa lên cloud, nhập GitHub Personal Access Token:');
-    return;
-  }
-
-  showIndicator('⏳ Đang lưu lên GitHub...', '#6366f1');
+  showIndicator('⏳ Đang lưu...', '#6366f1');
   try {
-    // Get current file SHA (needed for update)
-    const metaRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${DATA_FILE}`, {
-      headers: { 'Authorization': `token ${token}` }
-    });
-    let sha = '';
-    if (metaRes.ok) {
-      const meta = await metaRes.json();
-      sha = meta.sha;
-    }
-
-    // Commit new content
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(journeyData, null, 2))));
-    const body = {
-      message: `Update journey data - ${new Date().toLocaleString('vi-VN')}`,
-      content: content,
-      branch: 'main'
-    };
-    if (sha) body.sha = sha;
-
-    const saveRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${DATA_FILE}`, {
+    const res = await fetch(BLOB_URL, {
       method: 'PUT',
-      headers: {
-        'Authorization': `token ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(journeyData)
     });
-
-    if (!saveRes.ok) {
-      const err = await saveRes.json();
-      if (saveRes.status === 401 || saveRes.status === 403) {
-        localStorage.removeItem(TOKEN_KEY);
-        showIndicator('❌ Token hết hạn. Nhấn Lưu lại để nhập token mới.', '#ef4444');
-      } else {
-        showIndicator('❌ Lỗi: ' + (err.message || saveRes.status), '#ef4444');
-      }
-      return;
-    }
-
-    // Also update localStorage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(journeyData));
-    showIndicator('✅ Đã lưu lên GitHub!', '#10b981');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showIndicator('✅ Đã lưu lên cloud!', '#10b981');
   } catch(e) {
     console.error('Cloud save failed:', e);
-    showIndicator('❌ Lỗi kết nối: ' + e.message, '#ef4444');
-  }
-}
-
-function promptForToken(msg) {
-  const token = prompt(msg + '\n\nTạo token tại: github.com/settings/tokens → Fine-grained → Repo contents: Read & Write');
-  if (token && token.trim()) {
-    setToken(token.trim());
-    cloudSave(); // Retry save
+    showIndicator('❌ Lỗi lưu: ' + e.message, '#ef4444');
   }
 }
 
 function resetToDefault() {
-  if (confirm('Xoá toàn bộ chỉnh sửa local và tải lại từ GitHub?')) {
-    localStorage.removeItem(STORAGE_KEY);
+  if (confirm('Tải lại dữ liệu mới nhất từ cloud?')) {
     location.reload();
-  }
-}
-
-function disconnectToken() {
-  if (confirm('Xoá GitHub token khỏi trình duyệt này?')) {
-    localStorage.removeItem(TOKEN_KEY);
-    showIndicator('🔓 Đã xoá token', '#f59e0b');
   }
 }
 
@@ -1002,13 +930,6 @@ document.addEventListener('keydown', e => {
   const loaded = await cloudLoad();
   render();
   if (loaded) showIndicator('☁️ Đã tải dữ liệu từ cloud', '#6366f1');
-
-  // Show token status
-  const tokenStatus = document.getElementById('token-status');
-  if (tokenStatus) {
-    tokenStatus.textContent = getToken() ? '🟢 Connected' : '🔴 Chưa kết nối';
-    tokenStatus.style.color = getToken() ? '#10b981' : '#ef4444';
-  }
 })();
 </script>
 </body>
