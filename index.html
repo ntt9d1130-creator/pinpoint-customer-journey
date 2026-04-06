@@ -162,6 +162,7 @@
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 8px;"></div>
   <button class="filter-btn" onclick="exportJSON()" title="Export cấu hình">📥 Export JSON</button>
   <button class="filter-btn" onclick="importJSON()" title="Import cấu hình">📤 Import JSON</button>
+  <button class="filter-btn" onclick="resetToDefault()" title="Reset về bản gốc">🔄 Reset</button>
   <button class="filter-btn" onclick="window.print()" title="In">🖨️ Print</button>
   <div class="view-toggle">
     <button class="view-btn active" onclick="switchView('card')">Card</button>
@@ -835,13 +836,92 @@ function handleImport(e) {
   e.target.value = '';
 }
 
+// === AUTO-SAVE (localStorage) ===
+const STORAGE_KEY = 'pinpoint_journey_data_v1';
+
+function autoSave() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(journeyData));
+    showSaveIndicator();
+  } catch(e) { console.warn('Auto-save failed:', e); }
+}
+
+function autoLoad() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      journeyData = JSON.parse(saved);
+      return true;
+    }
+  } catch(e) { console.warn('Auto-load failed:', e); }
+  return false;
+}
+
+function showSaveIndicator() {
+  let el = document.getElementById('save-indicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'save-indicator';
+    el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;z-index:300;pointer-events:none;';
+    document.body.appendChild(el);
+  }
+  el.textContent = '✅ Đã lưu tự động';
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 1500);
+}
+
+function resetToDefault() {
+  if (confirm('Xoá toàn bộ chỉnh sửa và quay về bản gốc?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+
+// Patch saveEdit to auto-save
+const _origSaveEdit = saveEdit;
+saveEdit = function() { _origSaveEdit(); autoSave(); };
+
+// Patch deleteStep to auto-save
+const _origDeleteStep = deleteStep;
+deleteStep = function(id) { _origDeleteStep(id); autoSave(); };
+
+// Patch addNewStep to auto-save
+const _origAddNewStep = addNewStep;
+addNewStep = function(phaseId, afterIdx) { _origAddNewStep(phaseId, afterIdx); autoSave(); };
+
+// Patch handleImport to auto-save
+const _origHandleImport = handleImport;
+handleImport = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      journeyData = JSON.parse(ev.target.result);
+      render();
+      autoSave();
+      alert('Import thành công! Dữ liệu đã được lưu.');
+    } catch(err) { alert('File JSON không hợp lệ'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+
 // === KEYBOARD ===
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); closeEditPanel(); }
 });
 
 // === INIT ===
+const loaded = autoLoad();
 render();
+if (loaded) {
+  let el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--phase1);color:white;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;opacity:1;transition:opacity .3s;z-index:300;pointer-events:none;';
+  el.textContent = '📂 Đã tải bản chỉnh sửa đã lưu';
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(()=>el.remove(), 300); }, 2500);
+}
 </script>
 </body>
 </html>
