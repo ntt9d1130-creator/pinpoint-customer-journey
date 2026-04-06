@@ -162,6 +162,7 @@
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 8px;"></div>
   <button class="filter-btn" onclick="cloudSave()" title="Lưu lên cloud" style="border-color:#10b981;color:#10b981;font-weight:600;">☁️ Lưu</button>
   <button class="filter-btn" onclick="cloudLoad().then(()=>{render();showIndicator('☁️ Đã tải lại','#6366f1')})" title="Tải lại từ cloud">🔄 Tải lại</button>
+  <span id="token-status" style="font-size:14px;cursor:pointer;" onclick="disconnectToken()"></span>
   <div style="border-left:1px solid var(--gray-200); height:24px; margin:0 4px;"></div>
   <button class="filter-btn" onclick="exportJSON()" title="Export JSON backup">📥 Export</button>
   <button class="filter-btn" onclick="importJSON()" title="Import JSON">📤 Import</button>
@@ -838,9 +839,12 @@ function handleImport(e) {
   e.target.value = '';
 }
 
-// === CLOUD SYNC (jsonblob.com — zero setup, no token) ===
-const BLOB_ID = '019d60ac-8557-7c5c-9aa2-55c360106ab9';
-const BLOB_URL = `https://jsonblob.com/api/jsonBlob/${BLOB_ID}`;
+// === CLOUD SYNC (GitHub API — CORS supported) ===
+const GH_REPO = 'ntt9d1130-creator/pinpoint-customer-journey';
+const GH_FILE = 'data.json';
+const GH_RAW = `https://raw.githubusercontent.com/${GH_REPO}/main/${GH_FILE}`;
+const GH_API = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const TK_KEY = 'pinpoint_gh_token';
 
 function showIndicator(msg, color) {
   let el = document.getElementById('save-indicator');
@@ -856,40 +860,111 @@ function showIndicator(msg, color) {
   setTimeout(() => { el.style.opacity = '0'; }, 2500);
 }
 
-// --- LOAD from cloud ---
+// --- LOAD (public, no token) ---
 async function cloudLoad() {
   try {
-    const res = await fetch(BLOB_URL, { headers: { 'Accept': 'application/json' } });
+    const res = await fetch(GH_RAW + '?t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     journeyData = await res.json();
     return true;
+  } catch(e) { console.warn('Cloud load failed:', e); return false; }
+}
+
+// --- SAVE (GitHub API + token) ---
+async function cloudSave() {
+  const token = localStorage.getItem(TK_KEY);
+  if (!token) { showTokenSetup(); return; }
+
+  showIndicator('⏳ Đang lưu...', '#6366f1');
+  try {
+    // Get SHA
+    const meta = await fetch(GH_API, { headers: { 'Authorization': 'token ' + token } });
+    const sha = meta.ok ? (await meta.json()).sha : '';
+
+    // Commit
+    const body = {
+      message: 'Update journey — ' + new Date().toLocaleString('vi-VN'),
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(journeyData, null, 2)))),
+      branch: 'main'
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(GH_API, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem(TK_KEY);
+      showIndicator('❌ Token lỗi — nhấn Lưu lại để cài mới', '#ef4444');
+      return;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showIndicator('✅ Đã lưu lên cloud!', '#10b981');
+    updateTokenUI();
   } catch(e) {
-    console.warn('Cloud load failed:', e);
-    return false;
+    showIndicator('❌ ' + e.message, '#ef4444');
   }
 }
 
-// --- SAVE to cloud (auto, no token needed) ---
-async function cloudSave() {
-  showIndicator('⏳ Đang lưu...', '#6366f1');
-  try {
-    const res = await fetch(BLOB_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(journeyData)
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    showIndicator('✅ Đã lưu lên cloud!', '#10b981');
-  } catch(e) {
-    console.error('Cloud save failed:', e);
-    showIndicator('❌ Lỗi lưu: ' + e.message, '#ef4444');
+// --- TOKEN SETUP (one-time, beautiful modal) ---
+function showTokenSetup() {
+  const overlay = document.createElement('div');
+  overlay.id = 'token-setup';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:16px;max-width:480px;width:100%;padding:28px;box-shadow:0 20px 40px rgba(0,0,0,.15);">
+      <h2 style="margin:0 0 4px;font-size:18px;">🔑 Kết nối GitHub (1 lần duy nhất)</h2>
+      <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">Tạo token để lưu chỉnh sửa. Chỉ cần làm 1 lần trên mỗi máy.</p>
+      <div style="background:#f3f4f6;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <p style="font-size:12px;margin:0 0 8px;font-weight:600;">3 bước đơn giản:</p>
+        <p style="font-size:12px;margin:0 0 4px;">1️⃣ <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#6366f1;font-weight:600;">Nhấn vào đây → Generate new token</a></p>
+        <p style="font-size:12px;margin:0 0 4px;">2️⃣ Token name: <b>pinpoint-journey</b> · Expiration: <b>90 days</b></p>
+        <p style="font-size:12px;margin:0 0 4px;">   Repository access: <b>Only select → pinpoint-customer-journey</b></p>
+        <p style="font-size:12px;margin:0 0 4px;">   Permissions → Contents: <b>Read and Write</b></p>
+        <p style="font-size:12px;margin:0;">3️⃣ Copy token và dán vào ô bên dưới</p>
+      </div>
+      <input id="token-input" type="password" placeholder="Dán token vào đây (github_pat_...)" style="width:100%;padding:10px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:13px;margin-bottom:12px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveToken()" style="flex:1;padding:10px;background:#6366f1;color:white;border:none;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;">Kết nối</button>
+        <button onclick="document.getElementById('token-setup').remove()" style="padding:10px 16px;background:#f3f4f6;border:none;border-radius:10px;font-size:13px;cursor:pointer;color:#6b7280;">Huỷ</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('token-input').focus(), 100);
+}
+
+function saveToken() {
+  const input = document.getElementById('token-input');
+  const token = input.value.trim();
+  if (!token) { input.style.borderColor = '#ef4444'; return; }
+  localStorage.setItem(TK_KEY, token);
+  document.getElementById('token-setup').remove();
+  updateTokenUI();
+  cloudSave();
+}
+
+function updateTokenUI() {
+  const el = document.getElementById('token-status');
+  if (!el) return;
+  const hasToken = !!localStorage.getItem(TK_KEY);
+  el.textContent = hasToken ? '🟢' : '🔴';
+  el.title = hasToken ? 'Đã kết nối — click để ngắt' : 'Chưa kết nối';
+}
+
+function disconnectToken() {
+  if (!localStorage.getItem(TK_KEY)) { showTokenSetup(); return; }
+  if (confirm('Ngắt kết nối GitHub trên trình duyệt này?')) {
+    localStorage.removeItem(TK_KEY);
+    updateTokenUI();
+    showIndicator('🔓 Đã ngắt kết nối', '#f59e0b');
   }
 }
 
 function resetToDefault() {
-  if (confirm('Tải lại dữ liệu mới nhất từ cloud?')) {
-    location.reload();
-  }
+  if (confirm('Tải lại dữ liệu mới nhất từ cloud?')) { location.reload(); }
 }
 
 // Patch saveEdit to cloud-save
@@ -929,6 +1004,7 @@ document.addEventListener('keydown', e => {
 (async () => {
   const loaded = await cloudLoad();
   render();
+  updateTokenUI();
   if (loaded) showIndicator('☁️ Đã tải dữ liệu từ cloud', '#6366f1');
 })();
 </script>
